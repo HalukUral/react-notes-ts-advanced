@@ -1,0 +1,30 @@
+{
+  "tasks": {
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "dev": "deno run --allow-net --allow-read --allow-write --allow-env --watch main.ts",
+    "m:gen": "deno run -A npm:drizzle-kit generate --config=./drizzle.config.ts",
+    "m:migrate": "deno run -A npm:drizzle-kit migrate --config=./drizzle.config.ts",
+    "m:check": "deno run -A npm:drizzle-kit check --config=./drizzle.config.ts",
+    "m:up": "deno run -A npm:drizzle-kit up",
+    "dev:reset": "bash -lc 'rm -f ./db/tasks.db && deno run -A main.ts'"
+  },
+  "imports": {
+    "@std/http": "jsr:@std/http@1",
+    "drizzle-orm/sql-js": "npm:drizzle-orm@0.36.3/sql-js",
+    "sql.js": "npm:sql.js",
+    "drizzle-kit": "npm:drizzle-kit",
+    "hono": "npm:hono",
+    "zod": "npm:zod",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi",
+    "hono/cors": "npm:hono/cors",
+    "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts",
+    "jose": "npm:jose",
+
+    "drizzle-orm/": "npm:drizzle-orm/",
+    "drizzle-orm": "npm:drizzle-orm",
+    "better-sqlite3": "npm:better-sqlite3",
+    "@libsql/client": "npm:@libsql/client"
+  },
+  "nodeModulesDir": "auto"
+}
