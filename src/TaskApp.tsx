@@ -21,7 +21,6 @@ type TaskRow = {
   created_at?: number;
 };
 
-// Optional: migrate old localStorage that used `done: boolean`
 function safeParse<T>(s: string | null): T | null {
   try { return s ? (JSON.parse(s) as T) : null; } catch { return null; }
 }
@@ -88,6 +87,91 @@ export default function TaskApp() {
       setTasks([]);
     }
   }
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Decode JWT to get userId (basic extraction, not full verification)
+    let userId: number | null = null;
+    let username: string | null = null;
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        userId = payload.userId;
+        username = payload.username;
+      }
+    } catch (e) {
+      console.warn('Failed to parse token:', e);
+    }
+
+    if (!userId || !username) {
+      console.warn('Could not extract userId/username from token');
+      return;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//localhost:8000/ws?userId=${userId}&username=${encodeURIComponent(username)}&token=${token}`;
+    
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('✓ WebSocket connected');
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 30000);
+      ws.onclose = () => clearInterval(pingInterval);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'task') {
+          const { eventType, task } = message;
+          
+          setTasks((prevTasks) => {
+            if (eventType === 'create') {
+              
+              return prevTasks.some(t => t.id === task.id) 
+                ? prevTasks 
+                : [...prevTasks, task];
+            } else if (eventType === 'update') {
+              
+              return prevTasks.map(t => t.id === task.id ? task : t);
+            } else if (eventType === 'delete') {
+             
+              return prevTasks.filter(t => t.id !== task.id);
+            }
+            return prevTasks;
+          });
+          
+          console.log(`[WS] Task ${eventType}: ${task.title || task.id}`);
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, []);
+
   useEffect(() => { reload(); }, []);       // initial load
   useEffect(() => { reload(); }, [q]);      // refetch on search
   // optional: small search
@@ -378,7 +462,6 @@ export default function TaskApp() {
           <>
             <button onClick={() => setEditId(null)}>Close</button>
             <button onClick={() => {
-              // save title/priority/status from inputs below
               const title = (document.getElementById("edit-title") as HTMLInputElement)?.value?.trim();
               const prio = (document.getElementById("edit-prio") as HTMLSelectElement)?.value as Priority;
               const st = (document.getElementById("edit-status") as HTMLSelectElement)?.value as TaskStatus;

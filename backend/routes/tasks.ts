@@ -3,6 +3,7 @@ import { eq } from "npm:drizzle-orm";
 import { orm } from "../db/drizzle.ts";
 import { tasks } from "../db/schema.ts";
 import { saveDb } from "../db/connection.ts";
+import { wsManager } from "../utils/wsManager.ts";
 
 export const tasksRoute = new Hono();
 
@@ -57,6 +58,9 @@ tasksRoute.post("/", async (c) => {
 
         await saveDb();
 
+        // Broadcast task creation to all connected clients
+        wsManager.broadcastTaskUpdate(user.userId, "create", inserted);
+
         const headers = new Headers();
         headers.set("location", `/api/tasks/${inserted.id}`);
         return new Response(JSON.stringify(inserted), {
@@ -96,6 +100,10 @@ tasksRoute.put("/:id", async (c) => {
     await saveDb();
 
     if (!updated) return c.json({ error: "not found" }, 404);
+    
+    // Broadcast task update to all connected clients
+    wsManager.broadcastTaskUpdate(user.userId, "update", updated);
+    
     return c.json(updated);
 });
 
@@ -120,5 +128,9 @@ tasksRoute.delete("/:id", async (c) => {
 
     await orm.delete(tasks).where(eq(tasks.id, id)).run();
     await saveDb();
+    
+    // Broadcast task deletion to all connected clients
+    wsManager.broadcastTaskUpdate(user.userId, "delete", { id });
+    
     return c.json({ ok: true });
 });

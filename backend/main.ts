@@ -46,6 +46,7 @@ import { z } from "npm:zod";
 import { OpenAPIHono } from "npm:@hono/zod-openapi";
 import { authMiddleware } from "./middleware/authMiddleware.ts";
 import { authRoute } from "./routes/auth.ts";
+import { wsRoute } from "./routes/ws.ts";
 
 // Zod schema for a Task
 const Task = z.object({
@@ -87,6 +88,7 @@ app.use("*", authMiddleware);
 
 app.route("/api/auth", authRoute);
 app.route("/api/tasks", tasksRoute);
+app.route("/", wsRoute);
 
 // Simple hello route
 app.get("/api/hello", (c) => c.json({ msg: "Hello from Hono + sql.js ✅" }));

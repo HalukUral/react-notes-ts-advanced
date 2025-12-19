@@ -6,13 +6,14 @@ const JWT_SECRET = Deno.env.get("JWT_SECRET") || "your-super-secret-key-12345-ch
 const secret = new TextEncoder().encode(JWT_SECRET);
 
 export async function authMiddleware(c: Context, next: Next) {
-  // Public routes - auth gerektirmeyenler
+  
   const publicRoutes = [
     "/api/auth/login", 
     "/api/auth/register", 
     "/api/auth/verify",
     "/api/auth/logout",
     "/api/hello", 
+    "/ws",
     "/openapi.json", 
     "/docs"
   ];
@@ -21,7 +22,7 @@ export async function authMiddleware(c: Context, next: Next) {
     return next();
   }
 
-  // Get token from Authorization header
+ 
   const authHeader = c.req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return c.json({ error: "Unauthorized - No token provided" }, 401);
